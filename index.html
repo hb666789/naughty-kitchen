@@ -31,11 +31,16 @@
 
     <!-- 厨师切换栏 -->
     <section class="chef-bar">
-      <button type="button" class="chef-chip-main" id="chefSwitcher" title="切换厨师">
-        <span class="chef-avatar" id="chefAvatar">👨‍🍳</span>
-        <span class="chef-name" id="chefName">胡闹主厨</span>
-        <span class="chef-caret">▾</span>
-      </button>
+      <div class="chef-bar-left">
+        <button type="button" class="chef-avatar-btn" id="chefAvatarBtn" title="设置头像">
+          <span class="chef-avatar" id="chefAvatar">👨‍🍳</span>
+          <span class="avatar-edit-badge">✏️</span>
+        </button>
+        <button type="button" class="chef-chip-main" id="chefSwitcher" title="切换厨师">
+          <span class="chef-name" id="chefName">胡闹主厨</span>
+          <span class="chef-caret">▾</span>
+        </button>
+      </div>
       <button type="button" class="btn btn-soft btn-small" id="chefManageBtn">👥 厨师档案</button>
     </section>
 
@@ -268,6 +273,36 @@
           <button type="button" class="btn btn-ghost btn-small" id="chefCancelEdit" hidden>取消</button>
           <button type="button" class="btn btn-primary btn-small" id="chefSave">保存厨师</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎨 设置头像弹窗 -->
+  <div class="modal-mask" id="avatarModal" hidden>
+    <div class="modal avatar-modal">
+      <div class="checkin-head">
+        <h3>🎨 设置「<span id="avatarChefName"></span>」的头像</h3>
+        <button type="button" class="cart-close" id="avatarClose">✕</button>
+      </div>
+
+      <div class="avatar-preview-row">
+        <div class="avatar-preview" id="avatarPreview">👨‍🍳</div>
+        <div class="avatar-preview-info">
+          <button type="button" class="btn btn-soft btn-small" id="avatarUploadBtn">🖼️ 上传自定义图片</button>
+          <input type="file" id="avatarFile" accept="image/*" hidden />
+          <button type="button" class="btn btn-ghost btn-small" id="avatarClearImg" hidden>🗑️ 移除图片</button>
+        </div>
+      </div>
+
+      <h4 class="checkin-h4">选个可爱头像</h4>
+      <div class="avatar-grid" id="avatarGrid"></div>
+
+      <h4 class="checkin-h4">挑个背景色</h4>
+      <div class="avatar-colors" id="avatarColors"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="avatarCancel">算了</button>
+        <button type="button" class="btn btn-primary" id="avatarSave">💾 保存头像</button>
       </div>
     </div>
   </div>
