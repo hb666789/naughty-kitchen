@@ -43,6 +43,25 @@
     "#e6d5f5", "#fff3b0", "#ffd8d8", "#d9f0e8"
   ];
 
+  const CATEGORY_OPTIONS = [
+    { value: "菜式", emoji: "🍽️" },
+    { value: "主食", emoji: "🍚" },
+    { value: "汤品", emoji: "🍲" },
+    { value: "饮品", emoji: "🥤" },
+    { value: "水果", emoji: "🍎" },
+    { value: "甜品", emoji: "🍰" }
+  ];
+
+  const TITLE_TIERS = [
+    { min: 0, title: "厨房新手", emoji: "🐣" },
+    { min: 50, title: "小厨学徒", emoji: "🍳" },
+    { min: 150, title: "家常大厨", emoji: "👨‍🍳" },
+    { min: 300, title: "美食达人", emoji: "🌟" },
+    { min: 500, title: "星级主厨", emoji: "⭐" },
+    { min: 800, title: "厨神", emoji: "👑" },
+    { min: 1200, title: "传说大厨", emoji: "🏆" }
+  ];
+
   /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
 
@@ -53,6 +72,7 @@
   const timeInput    = $("dishTime");
   const methodSelect = $("dishMethod");
   const levelSelect  = $("dishLevel");
+  const categorySelect = $("dishCategory");
   const stepsInput   = $("dishSteps");
   const ingListEl    = $("ingredientList");
   const addIngBtn    = $("addIngredientBtn");
@@ -171,6 +191,28 @@
   const avatarCancel    = $("avatarCancel");
   const avatarSave      = $("avatarSave");
 
+  // 搭配一餐
+  const mealBtn      = $("mealBtn");
+  const mealModal    = $("mealModal");
+  const mealClose    = $("mealClose");
+  const mealSections = $("mealSections");
+  const mealSummary  = $("mealSummary");
+  const mealClear    = $("mealClear");
+  const mealCheckin  = $("mealCheckin");
+
+  // 打卡本（能量 / 统计详情）
+  const energyNum   = $("energyNum");
+  const energyTitle = $("energyTitle");
+  const energyBar   = $("energyBar");
+  const energyNext  = $("energyNext");
+  const statDetail  = $("statDetail");
+
+  // 数据迁移与分享
+  const exportBtn  = $("exportBtn");
+  const importBtn  = $("importBtn");
+  const importFile = $("importFile");
+  const chefTitleChip = $("chefTitleChip");
+
   /* ---------- 状态 ---------- */
   let recipes = loadRecipes();
   let order = loadOrder();
@@ -192,6 +234,8 @@
   let avatarEmoji = "👨‍🍳";
   let avatarColor = "";
   let avatarImg = "";
+  let mealSel = { 菜式: [], 甜品: [] }; // 搭配一餐的当前选择（单选的分类存 id 或 null）
+  let statDetailKind = null;   // 打卡本当前展开的统计模块
 
   /* ---------- 初始化下拉框 ---------- */
   function initSelects() {
@@ -213,9 +257,16 @@
       opt.textContent = e;
       chefEmoji.appendChild(opt);
     });
+    CATEGORY_OPTIONS.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.value;
+      opt.textContent = `${c.emoji} ${c.value}`;
+      categorySelect.appendChild(opt);
+    });
     emojiSelect.value = "🍅";
     methodSelect.value = METHOD_OPTIONS[0];
     chefEmoji.value = CHEF_EMOJIS[0];
+    categorySelect.value = "菜式";
   }
 
   /* ---------- 本地存储 ---------- */
@@ -328,6 +379,67 @@
 
   function activeChef() {
     return chefs.find((c) => c.id === activeChefId) || chefs[0];
+  }
+
+  /* ---------- 数据迁移（旧数据补字段） ---------- */
+  function migrateData() {
+    let changed = false;
+    recipes.forEach((r) => {
+      if (!r.category) {
+        r.category = "菜式";
+        changed = true;
+      }
+    });
+    checkins.forEach((c) => {
+      if (typeof c.chefId === "undefined") {
+        c.chefId = "chef-1";
+        changed = true;
+      }
+      if (!c.type) {
+        c.type = "dish";
+        changed = true;
+      }
+      if (typeof c.points === "undefined") {
+        const r = recipes.find((x) => x.id === c.id);
+        c.points = 5 + (r ? (r.level || 1) * 5 : 5);
+        changed = true;
+      }
+    });
+    if (changed) {
+      saveRecipes();
+      saveCheckins();
+    }
+  }
+
+  /* ---------- 爱心能量与称号 ---------- */
+  function dishPoints(r) {
+    return 5 + (r.level || 1) * 5; // 难度越高能量越多
+  }
+
+  function mealPoints(recs) {
+    const cats = new Set(recs.map((r) => r.category));
+    let pts = recs.reduce((s, r) => s + 5 + (r.level || 1) * 5 + (r.category === "菜式" ? 3 : 0), 0);
+    // 营养均衡奖励：主食+菜式+饮品+水果
+    if (cats.has("主食") && cats.has("菜式") && cats.has("饮品") && cats.has("水果")) pts += 12;
+    return pts;
+  }
+
+  function chefEnergy(chefId) {
+    return checkins
+      .filter((c) => (c.chefId || "chef-1") === chefId)
+      .reduce((s, c) => s + (c.points || 0), 0);
+  }
+
+  function chefTitle(energy) {
+    let cur = TITLE_TIERS[0];
+    TITLE_TIERS.forEach((t) => {
+      if (energy >= t.min) cur = t;
+    });
+    return cur;
+  }
+
+  function nextTitle(energy) {
+    return TITLE_TIERS.find((t) => t.min > energy) || null;
   }
 
   /* ---------- 打卡工具 ---------- */
@@ -504,6 +616,7 @@
       id: editingId || "r" + Date.now() + Math.random().toString(16).slice(2, 6),
       name: nameInput.value.trim(),
       emoji: emojiSelect.value,
+      category: categorySelect.value || "菜式",
       time: Number(timeInput.value),
       method: methodSelect.value,
       level: Number(levelSelect.value),
@@ -537,6 +650,7 @@
     dishForm.reset();
     emojiSelect.value = "🍅";
     methodSelect.value = METHOD_OPTIONS[0];
+    categorySelect.value = "菜式";
     renderIngredientRows();
     resetImageUI();
     setFormOpen(false); // 保存/取消后收起表单
@@ -566,6 +680,7 @@
     editIdInput.value = r.id;
     nameInput.value = r.name;
     emojiSelect.value = r.emoji || "🍅";
+    categorySelect.value = r.category || "菜式";
     timeInput.value = r.time;
     methodSelect.value = r.method || METHOD_OPTIONS[0];
     levelSelect.value = String(r.level || 1);
@@ -797,6 +912,10 @@
     const a = activeChef();
     applyAvatar(chefAvatar, a);
     chefName.textContent = a.name;
+    const energy = chefEnergy(a.id);
+    const t = chefTitle(energy);
+    chefTitleChip.textContent = `${t.emoji} ${t.title}`;
+    chefTitleChip.title = `爱心能量 ${energy} · 称号`;
     formChefNote.textContent = `👨‍🍳 新菜式将收录到「${a.name}」的档案`;
     renderChefFilter();
     if (!chefModal.hidden) renderChefList();
@@ -1042,21 +1161,142 @@
       toast("🥰 今天已经打卡过这道菜啦～");
       return;
     }
+    const pts = dishPoints(r);
     checkins.push({
       id: recipeId,
       name: r.name,
       emoji: r.emoji || "🍽️",
-      ts: Date.now()
+      ts: Date.now(),
+      chefId: activeChefId,
+      type: "dish",
+      points: pts
     });
     saveCheckins();
     render();                       // 刷新卡片上的「已打卡」状态
+    renderChefUI();                 // 刷新厨师栏称号
     if (!checkinModal.hidden) renderCheckinPanel();
     updateCookCheckinBtn();
     celebrate();
-    toast(`✅ 打卡成功！「${r.name}」已记录`);
+    toast(`✅ 打卡成功！「${r.name}」 +${pts} ❤️`);
+  }
+
+  /* ---------- 搭配一餐 ---------- */
+  function openMealComposer() {
+    renderMealComposer();
+    mealModal.hidden = false;
+  }
+
+  function closeMealComposer() {
+    mealModal.hidden = true;
+  }
+
+  function collectMealRecipes() {
+    const picked = [];
+    Object.keys(mealSel).forEach((cat) => {
+      const ids = Array.isArray(mealSel[cat]) ? mealSel[cat] : [mealSel[cat]];
+      ids.forEach((id) => {
+        if (!id) return;
+        const r = recipes.find((x) => x.id === id);
+        if (r) picked.push(r);
+      });
+    });
+    return picked;
+  }
+
+  function renderMealComposer() {
+    const sections = [];
+    CATEGORY_OPTIONS.forEach((c) => {
+      const items = recipes.filter((r) => r.category === c.value);
+      if (items.length === 0) return;
+      const multi = Array.isArray(mealSel[c.value]);
+      sections.push(`
+        <div class="meal-section">
+          <h4>${c.emoji} ${c.value}</h4>
+          <div class="meal-items">
+            ${items
+              .map((r) => {
+                const active = multi
+                  ? mealSel[c.value].includes(r.id)
+                  : mealSel[c.value] === r.id;
+                return `
+              <button type="button" class="meal-item ${active ? "active" : ""}" data-cat="${c.value}" data-id="${r.id}">
+                <span class="meal-item-emoji">${r.emoji || "🍽️"}</span>
+                <span class="meal-item-name">${escapeHtml(r.name)}</span>
+              </button>`;
+              })
+              .join("")}
+          </div>
+        </div>`);
+    });
+    mealSections.innerHTML =
+      sections.length > 0
+        ? sections.join("")
+        : '<div class="cart-empty">🍳 还没有菜谱，先去添加几道吧！</div>';
+    renderMealSummary();
+  }
+
+  function toggleMealItem(cat, id) {
+    if (Array.isArray(mealSel[cat])) {
+      const arr = mealSel[cat];
+      const i = arr.indexOf(id);
+      if (i > -1) arr.splice(i, 1);
+      else if (arr.length < 4) arr.push(id);
+    } else {
+      mealSel[cat] = mealSel[cat] === id ? null : id;
+    }
+    renderMealComposer();
+  }
+
+  function clearMeal() {
+    mealSel = { 菜式: [], 甜品: [] };
+    renderMealComposer();
+  }
+
+  function renderMealSummary() {
+    const picked = collectMealRecipes();
+    if (picked.length === 0) {
+      mealSummary.innerHTML = "还没选好，快挑一挑吧～";
+      return;
+    }
+    const pts = mealPoints(picked);
+    const cats = new Set(picked.map((r) => r.category));
+    const balanced =
+      cats.has("主食") && cats.has("菜式") && cats.has("饮品") && cats.has("水果");
+    mealSummary.innerHTML =
+      picked.map((r) => `${r.emoji || "🍽️"} ${escapeHtml(r.name)}`).join(" · ") +
+      `<div class="pts-preview">预计获得 <strong>${pts}</strong> 爱心能量 ${balanced ? "＋ 营养均衡 🥗" : ""}</div>`;
+  }
+
+  function checkInMeal() {
+    const picked = collectMealRecipes();
+    if (picked.length === 0) {
+      toast("🥺 先选点东西再打卡呀～");
+      return;
+    }
+    const pts = mealPoints(picked);
+    checkins.push({
+      id: "m" + Date.now() + Math.random().toString(16).slice(2, 6),
+      name: picked.map((r) => r.name).join(" + "),
+      emoji: "🍱",
+      ts: Date.now(),
+      chefId: activeChefId,
+      type: "meal",
+      mealIds: picked.map((r) => r.id),
+      points: pts
+    });
+    saveCheckins();
+    render();
+    renderChefUI(); // 刷新厨师栏称号
+    if (!checkinModal.hidden) renderCheckinPanel();
+    celebrate();
+    toast(`❤️ 这顿饭打卡成功！+${pts} 爱心能量`);
+    clearMeal();
+    mealModal.hidden = true;
   }
 
   function openCheckinPanel() {
+    statDetailKind = null;
+    statDetail.hidden = true;
     renderCheckinPanel();
     checkinModal.hidden = false;
   }
@@ -1071,6 +1311,18 @@
     statStreak.textContent = String(s.streak);
     statTotal.textContent = String(s.total);
     statDishes.textContent = String(s.dishes);
+
+    // 爱心能量与称号（当前厨师）
+    const energy = chefEnergy(activeChefId);
+    const title = chefTitle(energy);
+    const next = nextTitle(energy);
+    energyNum.textContent = String(energy);
+    energyTitle.textContent = `${title.emoji} ${title.title}`;
+    const pct = next ? Math.min(100, Math.round(((energy - title.min) / (next.min - title.min)) * 100)) : 100;
+    energyBar.style.width = pct + "%";
+    energyNext.textContent = next
+      ? `再获得 ${next.min - energy} 能量升级「${next.emoji} ${next.title}」`
+      : "🏆 已达成最高称号「传说大厨」！";
 
     // 最近 14 天日历
     const days = new Set(checkins.map((c) => dateKey(c.ts)));
@@ -1087,26 +1339,103 @@
     if (checkins.length === 0) {
       checkinList.innerHTML =
         '<div class="cart-empty">还没有打卡记录～<br />做完一道菜就来打个卡吧！</div>';
+    } else {
+      const groups = {};
+      [...checkins]
+        .sort((a, b) => b.ts - a.ts)
+        .forEach((c) => {
+          const k = formatDate(c.ts);
+          (groups[k] = groups[k] || []).push(c);
+        });
+      checkinList.innerHTML = Object.entries(groups)
+        .map(
+          ([k, arr]) => `
+        <div class="checkin-day">
+          <div class="checkin-date">📌 ${k}</div>
+          <div class="checkin-items">${arr
+            .map((c) => `<span class="checkin-chip">${c.emoji} ${escapeHtml(c.name)}<i class="chip-pts">+${c.points || 0}❤️</i></span>`)
+            .join("")}</div>
+        </div>`
+        )
+        .join("");
+    }
+  }
+
+  function renderStatDetail(kind) {
+    if (!kind) {
+      statDetail.hidden = true;
       return;
     }
-    const groups = {};
-    [...checkins]
-      .sort((a, b) => b.ts - a.ts)
-      .forEach((c) => {
-        const k = formatDate(c.ts);
-        (groups[k] = groups[k] || []).push(c);
+    let html = "";
+    if (kind === "today") {
+      const today = dateKey(Date.now());
+      const list = checkins
+        .filter((c) => dateKey(c.ts) === today)
+        .sort((a, b) => b.ts - a.ts);
+      html = list.length
+        ? list
+            .map(
+              (c) =>
+                `<div class="detail-row"><span class="detail-name">${c.emoji || "🍽️"} ${escapeHtml(c.name)}</span><span class="detail-pts">+${c.points || 0}❤️</span><span class="detail-time">${timeOf(c.ts)}</span></div>`
+            )
+            .join("")
+        : "今天还没有打卡，快去打卡吧～";
+    } else if (kind === "streak") {
+      const days = new Set(checkins.map((c) => dateKey(c.ts)));
+      let cur = 0;
+      const d = new Date();
+      if (!days.has(dateKey(d))) d.setDate(d.getDate() - 1);
+      while (days.has(dateKey(d))) {
+        cur++;
+        d.setDate(d.getDate() - 1);
+      }
+      let best = 0;
+      const sorted = [...days].sort();
+      let run = 0;
+      let prev = null;
+      sorted.forEach((k) => {
+        run = prev && dayDiff(prev, k) === 1 ? run + 1 : 1;
+        best = Math.max(best, run);
+        prev = k;
       });
-    checkinList.innerHTML = Object.entries(groups)
-      .map(
-        ([k, arr]) => `
-      <div class="checkin-day">
-        <div class="checkin-date">📌 ${k}</div>
-        <div class="checkin-items">${arr
-          .map((c) => `<span class="checkin-chip">${c.emoji} ${escapeHtml(c.name)}</span>`)
-          .join("")}</div>
-      </div>`
-      )
-      .join("");
+      html = `当前连续 <strong>${cur}</strong> 天<br/>历史最长 <strong>${best}</strong> 天<br/>💡 坚持每天打卡，称号升级更快哦！`;
+    } else if (kind === "total") {
+      const meals = checkins.filter((c) => c.type === "meal").length;
+      const dishes = checkins.length - meals;
+      const energy = checkins.reduce((s, c) => s + (c.points || 0), 0);
+      html = `累计打卡 <strong>${checkins.length}</strong> 次（餐食 ${meals} · 单菜 ${dishes}）<br/>累计爱心能量 <strong>${energy} ❤️</strong>`;
+    } else if (kind === "dishes") {
+      const counts = {};
+      checkins
+        .filter((c) => c.type !== "meal")
+        .forEach((c) => {
+          counts[c.name] = (counts[c.name] || 0) + 1;
+        });
+      const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      html = entries.length
+        ? entries
+            .map(
+              ([n, cnt]) =>
+                `<div class="detail-row"><span class="detail-name">${escapeHtml(n)}</span><span class="detail-pts">×${cnt}</span></div>`
+            )
+            .join("")
+        : "还没有单菜打卡记录～";
+    }
+    statDetail.innerHTML = html;
+    statDetail.hidden = false;
+  }
+
+  function timeOf(ts) {
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function dayDiff(k1, k2) {
+    const [y1, m1, d1] = k1.split("-").map(Number);
+    const [y2, m2, d2] = k2.split("-").map(Number);
+    const a = new Date(y1, m1 - 1, d1);
+    const b = new Date(y2, m2 - 1, d2);
+    return Math.round((b - a) / 86400000);
   }
 
   /* ---------- 做菜模式 ---------- */
@@ -1468,6 +1797,93 @@
       : '<div class="reco-empty">🍳 还没有菜谱，先去添加几道再来推荐吧！</div>';
   }
 
+  /* ---------- 数据迁移与分享 ---------- */
+  function exportData() {
+    const data = {
+      app: "胡闹厨房",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      recipes: recipes,
+      chefs: chefs,
+      checkins: checkins,
+      order: order
+    };
+    const json = JSON.stringify(data, null, 2);
+    try {
+      // 下载 JSON 文件
+      const blob = new Blob([json], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `胡闹厨房-数据备份-${dateKey(Date.now())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    } catch {
+      /* 下载失败不影响复制 */
+    }
+    // 复制到剪贴板（便于分享给朋友）
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(json)
+        .then(() => toast("📤 已导出！JSON 已复制到剪贴板，可直接分享～"))
+        .catch(() => toast("📤 已导出下载！"));
+    } else {
+      toast("📤 已导出下载！");
+    }
+  }
+
+  function handleImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!data || !Array.isArray(data.recipes)) throw new Error("bad format");
+        const before = recipes.length;
+        let added = 0;
+        data.recipes.forEach((r) => {
+          if (!r.id) r.id = "r" + Date.now() + Math.random().toString(16).slice(2, 6);
+          r.category = r.category || "菜式";
+          const idx = recipes.findIndex((x) => x.id === r.id);
+          if (idx > -1) {
+            recipes[idx] = r; // 覆盖同 id
+          } else {
+            recipes.unshift(r);
+            added++;
+          }
+        });
+        if (Array.isArray(data.chefs)) {
+          data.chefs.forEach((c) => {
+            if (c.id && !chefs.some((x) => x.id === c.id)) chefs.push(c);
+          });
+        }
+        if (Array.isArray(data.checkins)) {
+          data.checkins.forEach((c) => {
+            if (c.id && !checkins.some((x) => x.id === c.id)) {
+              c.chefId = c.chefId || "chef-1";
+              c.type = c.type || "dish";
+              c.points = c.points || 5;
+              checkins.push(c);
+            }
+          });
+        }
+        saveRecipes();
+        saveChefs();
+        saveCheckins();
+        render();
+        renderChefUI();
+        if (!checkinModal.hidden) renderCheckinPanel();
+        toast(`📥 导入成功！新增 ${added} 道菜，共 ${recipes.length} 道`);
+      } catch {
+        toast("😅 文件格式不对哦～请导入导出的 JSON 文件");
+      }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
   /* ---------- 渲染 ---------- */
   function visibleRecipes() {
     const keyword = searchInput.value.trim().toLowerCase();
@@ -1506,6 +1922,8 @@
         (c) => c.id === r.id && dateKey(c.ts) === dateKey(Date.now())
       );
       const chef = chefs.find((c) => c.id === r.chefId);
+      const catEmoji =
+        (CATEGORY_OPTIONS.find((c) => c.value === r.category) || {}).emoji || "🍽️";
 
       const ingHtml = (r.ingredients || [])
         .map((i) =>
@@ -1529,6 +1947,7 @@
           </div>
         </div>
         <div class="recipe-tags">
+          <span class="tag cat">${catEmoji} ${escapeHtml(r.category || "菜式")}</span>
           <span class="tag time">⏰ ${r.time} 分钟</span>
           <span class="tag method">${escapeHtml(r.method)}</span>
           <span class="tag chef">${chef ? `${chef.emoji} ${escapeHtml(chef.name)}` : "🧑‍🍳"}</span>
@@ -1609,6 +2028,7 @@
           name: "番茄炒蛋",
           emoji: "🍅",
           chefId: DEFAULT_CHEF_ID,
+          category: "菜式",
           time: 10,
           method: "🔥 炒",
           level: 1,
@@ -1626,6 +2046,7 @@
           name: "清蒸鲈鱼",
           emoji: "🐟",
           chefId: DEFAULT_CHEF_ID,
+          category: "菜式",
           time: 20,
           method: "♨️ 蒸",
           level: 2,
@@ -1829,6 +2250,33 @@
     checkinModal.addEventListener("click", (e) => {
       if (e.target === checkinModal) closeCheckinPanel();
     });
+    // 可点击统计模块
+    document.querySelectorAll(".stat-box").forEach((box) => {
+      box.addEventListener("click", () => {
+        const kind = box.dataset.detail;
+        statDetailKind = statDetailKind === kind ? null : kind;
+        renderStatDetail(statDetailKind);
+      });
+    });
+
+    // 搭配一餐
+    mealBtn.addEventListener("click", openMealComposer);
+    mealClose.addEventListener("click", closeMealComposer);
+    mealModal.addEventListener("click", (e) => {
+      if (e.target === mealModal) closeMealComposer();
+    });
+    mealClear.addEventListener("click", clearMeal);
+    mealCheckin.addEventListener("click", checkInMeal);
+    mealSections.addEventListener("click", (e) => {
+      const item = e.target.closest(".meal-item");
+      if (!item || !item.dataset.cat || !item.dataset.id) return;
+      toggleMealItem(item.dataset.cat, item.dataset.id);
+    });
+
+    // 数据导出 / 导入
+    exportBtn.addEventListener("click", exportData);
+    importBtn.addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", handleImportFile);
 
     // ESC 关闭所有浮层
     document.addEventListener("keydown", (e) => {
@@ -1842,6 +2290,7 @@
       if (!checkinModal.hidden) closeCheckinPanel();
       if (!chefModal.hidden) closeChefModal();
       if (!avatarModal.hidden) closeAvatarModal();
+      if (!mealModal.hidden) closeMealComposer();
       if (!cartDrawer.hidden) cartDrawer.hidden = true;
     });
   }
@@ -1854,6 +2303,7 @@
     bindEvents();
     seedIfEmpty();
     ensureChefs();
+    migrateData();
     renderChefUI();
     render();
     renderCart();
