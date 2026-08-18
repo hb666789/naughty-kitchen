@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=10" />
 </head>
 <body>
 
@@ -27,6 +27,7 @@
         <p class="subtitle">一起胡闹，也要好好吃饭～</p>
       </div>
       <div class="hero-actions">
+        <button type="button" class="btn btn-primary btn-big" id="mealBtn">🍱 搭配一餐</button>
         <button type="button" class="btn btn-mint btn-big" id="checkinBtn">📅 打卡本</button>
         <button type="button" class="btn btn-primary btn-big" id="blindBoxBtn">🎁 盲盒抽菜</button>
       </div>
@@ -41,6 +42,7 @@
         </button>
         <button type="button" class="chef-chip-main" id="chefSwitcher" title="切换厨师">
           <span class="chef-name" id="chefName">胡闹主厨</span>
+          <span class="chef-title-chip" id="chefTitleChip">🐣 厨房新手</span>
           <span class="chef-caret">▾</span>
         </button>
       </div>
@@ -76,7 +78,14 @@
     <section class="card list-card" id="mainCard">
       <div class="card-head">
         <h2>🍳 我的厨房 <span class="badge" id="countBadge">共 0 道</span></h2>
-        <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
+        <div class="head-actions">
+          <div class="data-actions">
+            <button type="button" class="btn btn-soft btn-small" id="exportBtn" title="导出并复制菜谱数据">📤 导出</button>
+            <button type="button" class="btn btn-soft btn-small" id="importBtn" title="导入菜谱数据">📥 导入</button>
+            <input type="file" id="importFile" accept=".json,application/json" hidden />
+          </div>
+          <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
+        </div>
       </div>
 
       <!-- 添加 / 编辑菜式（可折叠表单） -->
@@ -120,6 +129,10 @@
                 <option value="2">⭐⭐ 有点难</option>
                 <option value="3">⭐⭐⭐ 大挑战</option>
               </select>
+            </div>
+            <div class="field">
+              <label for="dishCategory">🍱 分类</label>
+              <select id="dishCategory"></select>
             </div>
           </div>
 
@@ -184,6 +197,23 @@
     </div>
   </div>
 
+  <!-- 🍱 搭配一餐弹窗 -->
+  <div class="modal-mask" id="mealModal" hidden>
+    <div class="modal meal-modal">
+      <div class="checkin-head">
+        <h3>🍱 搭配一餐</h3>
+        <button type="button" class="cart-close" id="mealClose">✕</button>
+      </div>
+      <p class="chef-hint">从各分类里挑选，组成一顿美美的一餐～（菜式可多选）</p>
+      <div class="meal-sections" id="mealSections"></div>
+      <div class="meal-summary" id="mealSummary">还没选好，快挑一挑吧～</div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="mealClear">🧹 清空</button>
+        <button type="button" class="btn btn-primary" id="mealCheckin">❤️ 打卡这顿饭</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 👩‍🍳 做菜模式弹窗 -->
   <div class="modal-mask" id="cookModal" hidden>
     <div class="cook-panel">
@@ -243,12 +273,27 @@
         <h3>📅 做菜打卡本</h3>
         <button type="button" class="cart-close" id="checkinClose">✕</button>
       </div>
-      <div class="checkin-stats">
-        <div class="stat-box"><div class="stat-num" id="statToday">0</div><div class="stat-label">今日打卡</div></div>
-        <div class="stat-box"><div class="stat-num" id="statStreak">0</div><div class="stat-label">连续天数</div></div>
-        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">累计打卡</div></div>
-        <div class="stat-box"><div class="stat-num" id="statDishes">0</div><div class="stat-label">做过菜式</div></div>
+
+      <!-- ❤️ 爱心能量与称号 -->
+      <div class="energy-box">
+        <div class="energy-head">
+          <span class="energy-label">❤️ 爱心能量</span>
+          <span class="energy-num" id="energyNum">0</span>
+          <span class="energy-title" id="energyTitle">🐣 厨房新手</span>
+        </div>
+        <div class="energy-bar"><div class="energy-bar-fill" id="energyBar"></div></div>
+        <div class="energy-next" id="energyNext"></div>
       </div>
+
+      <!-- 可点击统计模块 -->
+      <div class="checkin-stats">
+        <button type="button" class="stat-box" data-detail="today" title="查看今日打卡详情"><div class="stat-num" id="statToday">0</div><div class="stat-label">今日打卡</div></button>
+        <button type="button" class="stat-box" data-detail="streak" title="查看连续打卡详情"><div class="stat-num" id="statStreak">0</div><div class="stat-label">连续天数</div></button>
+        <button type="button" class="stat-box" data-detail="total" title="查看累计打卡详情"><div class="stat-num" id="statTotal">0</div><div class="stat-label">累计打卡</div></button>
+        <button type="button" class="stat-box" data-detail="dishes" title="查看做过的菜"><div class="stat-num" id="statDishes">0</div><div class="stat-label">做过菜式</div></button>
+      </div>
+      <div class="stat-detail" id="statDetail" hidden></div>
+
       <h4 class="checkin-h4">🗓️ 最近 14 天</h4>
       <div class="checkin-cal" id="checkinCal"></div>
       <h4 class="checkin-h4">📋 打卡记录</h4>
@@ -341,6 +386,6 @@
   <!-- 轻提示 -->
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
