@@ -682,11 +682,9 @@ textarea {
 }
 
 /* ============ 合并后的厨房区（表单 + 列表） ============ */
-.head-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+.list-card {
+  position: relative;
+  padding-bottom: 86px; /* 给右下角悬浮按钮留空间 */
 }
 
 .list-card .card-head h2 {
@@ -694,6 +692,36 @@ textarea {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* 右下角悬浮「添加新菜式」按钮 */
+.fab-add {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, var(--pink), var(--pink-deep));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(246, 93, 140, 0.4);
+  transition: transform 0.15s, filter 0.2s;
+}
+
+.fab-add:hover {
+  transform: translateY(-3px) scale(1.06);
+  filter: brightness(1.05);
+}
+
+.fab-add:active { transform: scale(0.94); }
+
+.fab-add.open {
+  background: linear-gradient(135deg, #bdb3c7, #9b8fa6);
+  box-shadow: 0 8px 20px rgba(155, 143, 166, 0.4);
 }
 
 .form-wrap {
@@ -735,9 +763,7 @@ textarea {
 }
 
 @media (max-width: 560px) {
-  .head-actions { width: 100%; }
-  .head-actions .btn { flex: 1; }
-  .head-actions .search { max-width: 100%; flex: 1 1 100%; }
+  .fab-add { right: 14px; bottom: 14px; }
 }
 
 /* ============ 厨师切换栏 ============ */
