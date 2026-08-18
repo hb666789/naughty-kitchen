@@ -521,7 +521,9 @@
   /* 展开 / 收起添加菜式表单 */
   function setFormOpen(open) {
     formWrap.hidden = !open;
-    toggleFormBtn.textContent = open ? "▾ 收起表单" : "➕ 添加新菜式";
+    toggleFormBtn.textContent = open ? "✕" : "➕";
+    toggleFormBtn.title = open ? "收起表单" : "添加新菜式";
+    toggleFormBtn.classList.toggle("open", open);
   }
 
   function openAddForm() {
