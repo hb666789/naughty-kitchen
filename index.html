@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍳 胡闹厨房 · 我的菜谱本</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 🎈 漂浮装饰 -->
+  <div class="floating-bg" aria-hidden="true">
+    <span>🍓</span><span>🍰</span><span>🥕</span><span>🍳</span><span>🍜</span>
+    <span>🧁</span><span>🥑</span><span>🍋</span><span>🥚</span><span>🍩</span>
+  </div>
+
+  <div class="page">
+
+    <!-- 顶部横幅 -->
+    <header class="hero">
+      <div class="hero-emoji">👩‍🍳</div>
+      <div class="hero-text">
+        <h1>胡闹厨房 🍳</h1>
+        <p class="subtitle">一起胡闹，也要好好吃饭～</p>
+      </div>
+      <div class="hero-actions">
+        <button type="button" class="btn btn-mint btn-big" id="checkinBtn">📅 打卡本</button>
+        <button type="button" class="btn btn-primary btn-big" id="blindBoxBtn">🎁 盲盒抽菜</button>
+      </div>
+    </header>
+
+    <!-- 厨师切换栏 -->
+    <section class="chef-bar">
+      <button type="button" class="chef-chip-main" id="chefSwitcher" title="切换厨师">
+        <span class="chef-avatar" id="chefAvatar">👨‍🍳</span>
+        <span class="chef-name" id="chefName">胡闹主厨</span>
+        <span class="chef-caret">▾</span>
+      </button>
+      <button type="button" class="btn btn-soft btn-small" id="chefManageBtn">👥 厨师档案</button>
+    </section>
+
+    <!-- 天气与今日推荐 -->
+    <section class="card weather-card" id="weatherCard" hidden>
+      <div class="weather-main">
+        <div class="weather-emoji" id="weatherEmoji">☀️</div>
+        <div class="weather-info">
+          <div class="weather-city" id="weatherCity">📍 定位中…</div>
+          <div class="weather-desc" id="weatherDesc">--</div>
+        </div>
+        <button type="button" class="btn btn-soft btn-small" id="weatherRefresh">🔄 刷新天气</button>
+      </div>
+
+      <div class="weather-reco">
+        <div class="weather-reco-head">
+          <span class="weather-reco-title">🍽️ 今日推荐</span>
+          <span class="weather-reco-why" id="weatherWhy"></span>
+        </div>
+        <div class="weather-reco-list" id="weatherRecoList"></div>
+      </div>
+
+      <div class="weather-manual" id="weatherManual" hidden>
+        <input type="text" id="cityInput" placeholder="定位不到？输入城市名，如：北京" maxlength="20" />
+        <button type="button" class="btn btn-primary btn-small" id="cityGo">📍 定位这座城市</button>
+      </div>
+    </section>
+
+    <!-- 添加菜式卡片 -->
+    <section class="card form-card" id="formCard">
+      <div class="card-head">
+        <h2>➕ 添加新菜式</h2>
+        <span class="badge" id="countBadge">共 0 道</span>
+      </div>
+      <p class="form-chef-note" id="formChefNote">👨‍🍳 新菜式将收录到「胡闹主厨」的档案</p>
+
+      <form id="dishForm" autocomplete="off">
+        <input type="hidden" id="editId" />
+
+        <div class="form-row">
+          <div class="field grow">
+            <label for="dishName">🍽️ 菜名 <em>*</em></label>
+            <input type="text" id="dishName" placeholder="比如：番茄炒蛋" maxlength="30" required />
+          </div>
+          <div class="field">
+            <label for="dishEmoji">😋 小图标</label>
+            <select id="dishEmoji"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="dishTime">⏰ 烹饪时间</label>
+            <div class="time-input">
+              <input type="number" id="dishTime" min="1" max="999" placeholder="15" />
+              <span class="unit">分钟</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="dishMethod">🍳 烹饪方式</label>
+            <select id="dishMethod"></select>
+          </div>
+          <div class="field">
+            <label for="dishLevel">💪 难度</label>
+            <select id="dishLevel">
+              <option value="1">⭐ 超简单</option>
+              <option value="2">⭐⭐ 有点难</option>
+              <option value="3">⭐⭐⭐ 大挑战</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>🖼️ 菜菜配图 <span class="hint">（可选，点一下上传，自动压缩）</span></label>
+          <input type="file" id="imageInput" accept="image/*" hidden />
+          <div class="img-upload" id="imgUpload" title="点击上传图片">
+            <img id="imagePreview" class="img-preview" alt="配图预览" hidden />
+            <div class="img-placeholder" id="imgPlaceholder">📷<br /><span>点击上传图片</span></div>
+          </div>
+          <button type="button" class="btn btn-soft btn-small" id="removeImageBtn" hidden>🗑️ 移除图片</button>
+        </div>
+
+        <div class="field">
+          <label>🥕 配料清单 <span class="hint">（可以随时添加／删除）</span></label>
+          <div id="ingredientList"></div>
+          <button type="button" class="btn btn-soft" id="addIngredientBtn">＋ 添加配料</button>
+        </div>
+
+        <div class="field">
+          <label for="dishSteps">📝 做法小抄</label>
+          <textarea id="dishSteps" rows="3" placeholder="把步骤悄悄写在这里吧～"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="cancelEditBtn" hidden>取消编辑</button>
+          <button type="submit" class="btn btn-primary">✨ 保存这道菜</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 菜谱列表 -->
+    <section class="card list-card">
+      <div class="card-head">
+        <h2>📖 我的菜谱</h2>
+        <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
+      </div>
+
+      <div class="chef-filter" id="chefFilter"></div>
+
+      <div id="recipeGrid" class="recipe-grid"></div>
+      <div id="emptyState" class="empty-state" hidden>
+        <div class="empty-emoji">🍳</div>
+        <p>还没有菜谱哦～<br />快来添加你的第一道拿手菜吧！</p>
+      </div>
+    </section>
+
+    <footer class="footer">💕 用心做菜，好好吃饭 · 数据保存在你的浏览器里</footer>
+  </div>
+
+  <!-- 🎁 盲盒抽菜弹窗 -->
+  <div class="modal-mask" id="blindModal" hidden>
+    <div class="modal blind-modal">
+      <div class="blind-stage" id="blindStage">
+        <div class="blind-emoji" id="blindEmoji">🎁</div>
+      </div>
+      <h3 id="blindTitle">今天吃什么？</h3>
+      <p id="blindResult"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="blindClose">✕ 关掉</button>
+        <button type="button" class="btn btn-primary" id="blindOrder">🎯 就点这道</button>
+      </div>
+      <div class="blind-again">
+        <button type="button" class="btn btn-soft" id="blindAgain">🎲 再抽一次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 👩‍🍳 做菜模式弹窗 -->
+  <div class="modal-mask" id="cookModal" hidden>
+    <div class="cook-panel">
+      <div class="cook-head">
+        <div class="cook-title">
+          <div class="cook-emoji" id="cookEmoji">🍳</div>
+          <div>
+            <h3 id="cookName">菜名</h3>
+            <p class="cook-meta" id="cookMeta"></p>
+          </div>
+        </div>
+        <button type="button" class="cart-close" id="cookClose">✕</button>
+      </div>
+
+      <img id="cookImage" class="cook-image" alt="菜品图片" hidden />
+
+      <div class="cook-body">
+        <div class="cook-timer-zone">
+          <div class="timer-ring" id="timerRing">
+            <div class="timer-inner">
+              <div class="timer-num" id="timerNum">10:00</div>
+              <div class="timer-label" id="timerLabel">烹饪倒计时</div>
+            </div>
+          </div>
+          <div class="timer-actions">
+            <button type="button" class="btn btn-soft" id="timerReset">↺ 重置</button>
+            <button type="button" class="btn btn-primary" id="timerToggle">▶ 开始计时</button>
+          </div>
+        </div>
+
+        <div class="cook-lists">
+          <div class="cook-section">
+            <h4>🥕 配料准备</h4>
+            <div id="cookIngredients" class="cook-checks"></div>
+          </div>
+          <div class="cook-section">
+            <h4>📝 做法步骤</h4>
+            <div id="cookSteps" class="cook-checks"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cook-foot">
+        <div class="cook-progress-wrap">
+          <div class="cook-progress"><div class="cook-progress-bar" id="cookProgressBar"></div></div>
+          <span class="cook-progress-text" id="cookProgressText">0 / 0 完成</span>
+        </div>
+        <button type="button" class="btn btn-checkin" id="cookCheckin">✅ 做完打卡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📅 做菜打卡本 -->
+  <div class="modal-mask" id="checkinModal" hidden>
+    <div class="modal checkin-modal">
+      <div class="checkin-head">
+        <h3>📅 做菜打卡本</h3>
+        <button type="button" class="cart-close" id="checkinClose">✕</button>
+      </div>
+      <div class="checkin-stats">
+        <div class="stat-box"><div class="stat-num" id="statToday">0</div><div class="stat-label">今日打卡</div></div>
+        <div class="stat-box"><div class="stat-num" id="statStreak">0</div><div class="stat-label">连续天数</div></div>
+        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">累计打卡</div></div>
+        <div class="stat-box"><div class="stat-num" id="statDishes">0</div><div class="stat-label">做过菜式</div></div>
+      </div>
+      <h4 class="checkin-h4">🗓️ 最近 14 天</h4>
+      <div class="checkin-cal" id="checkinCal"></div>
+      <h4 class="checkin-h4">📋 打卡记录</h4>
+      <div class="checkin-list" id="checkinList"></div>
+    </div>
+  </div>
+
+  <!-- 👥 厨师档案弹窗 -->
+  <div class="modal-mask" id="chefModal" hidden>
+    <div class="modal chef-modal">
+      <div class="checkin-head">
+        <h3>👥 厨师档案</h3>
+        <button type="button" class="cart-close" id="chefClose">✕</button>
+      </div>
+      <p class="chef-hint">点选厨师即可切换 · 每位厨师管理自己的菜谱档案</p>
+      <div class="chef-list" id="chefList"></div>
+      <div class="chef-form">
+        <h4 id="chefFormTitle">➕ 新厨师</h4>
+        <div class="chef-form-row">
+          <select id="chefEmoji" title="头像"></select>
+          <input type="text" id="chefNameInput" placeholder="厨师昵称，如：小美" maxlength="12" />
+        </div>
+        <input type="text" id="chefSlogan" placeholder="口号，如：甜品大师" maxlength="20" />
+        <div class="chef-form-actions">
+          <button type="button" class="btn btn-ghost btn-small" id="chefCancelEdit" hidden>取消</button>
+          <button type="button" class="btn btn-primary btn-small" id="chefSave">保存厨师</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认删除弹窗 -->
+  <div class="modal-mask" id="modalMask" hidden>
+    <div class="modal">
+      <div class="modal-emoji">🥺</div>
+      <h3 id="modalTitle">确定要删掉这道菜吗？</h3>
+      <p id="modalDishName"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="modalCancel">再想想</button>
+        <button type="button" class="btn btn-danger" id="modalConfirm">删掉吧</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧺 点菜购物篮 -->
+  <button type="button" class="cart-fab" id="cartFab" hidden title="点菜清单">🧺<span class="cart-count" id="cartCount">0</span></button>
+
+  <div class="cart-drawer" id="cartDrawer" hidden>
+    <div class="cart-head">
+      <h3>🧺 点菜清单</h3>
+      <button type="button" class="cart-close" id="cartClose">✕</button>
+    </div>
+    <div class="cart-list" id="cartList"></div>
+    <div class="cart-foot">
+      <span class="cart-total" id="cartTotal">共 0 份</span>
+      <button type="button" class="btn btn-ghost btn-small" id="cartClear">🧹 清空</button>
+    </div>
+  </div>
+
+  <!-- 轻提示 -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
