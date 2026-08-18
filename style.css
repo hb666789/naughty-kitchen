@@ -794,7 +794,7 @@ textarea {
   border: none;
   background: none;
   cursor: pointer;
-  padding: 0;
+  padding: 3px;
   flex-shrink: 0;
   transition: transform 0.15s;
 }
