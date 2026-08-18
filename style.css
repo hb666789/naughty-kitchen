@@ -766,6 +766,216 @@ textarea {
   .fab-add { right: 14px; bottom: 14px; }
 }
 
+/* ============ 数据导出 / 导入 ============ */
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.data-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tag.cat { background: #cfe8ff; color: #2f6ea5; }
+
+/* ============ 厨师称号 ============ */
+.chef-title-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ffd6e4, #ffe9c9);
+  color: #b06a8a;
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+/* ============ 搭配一餐 ============ */
+.meal-modal {
+  width: min(560px, 94vw);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.meal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.meal-section h4 {
+  font-size: 0.9rem;
+  color: var(--pink-deep);
+  margin-bottom: 8px;
+}
+
+.meal-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.meal-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid #ffe3ec;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--ink);
+  transition: all 0.15s;
+}
+
+.meal-item:hover { border-color: var(--pink); transform: translateY(-1px); }
+
+.meal-item.active {
+  background: linear-gradient(135deg, var(--pink), var(--pink-deep));
+  border-color: var(--pink-deep);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(246, 93, 140, 0.3);
+}
+
+.meal-item-emoji { font-size: 1rem; }
+
+.meal-summary {
+  background: #fffaf3;
+  border: 2px dashed #ffd6e4;
+  border-radius: 16px;
+  padding: 12px;
+  font-size: 0.88rem;
+  color: var(--ink);
+  line-height: 1.8;
+  margin-bottom: 16px;
+  min-height: 52px;
+}
+
+.meal-summary .pts-preview {
+  color: var(--pink-deep);
+  font-weight: 700;
+}
+
+/* ============ 爱心能量 ============ */
+.energy-box {
+  background: linear-gradient(135deg, #fff0f6, #ffe9ef);
+  border: 2px solid #ffd6e4;
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.energy-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.energy-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--pink-deep);
+}
+
+.energy-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--pink-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.energy-title {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #fff;
+  border: 2px solid #ffd6e4;
+  border-radius: 999px;
+  padding: 4px 12px;
+  color: #b06a8a;
+}
+
+.energy-bar {
+  height: 14px;
+  background: #ffe3ec;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.energy-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #ffb3c6, var(--pink-deep));
+  border-radius: 999px;
+  transition: width 0.4s;
+}
+
+.energy-next {
+  margin-top: 8px;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+/* ============ 可点击统计模块 ============ */
+.stat-box {
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(246, 93, 140, 0.15);
+}
+
+.stat-box:active { transform: scale(0.97); }
+
+.stat-detail {
+  background: #fffaf3;
+  border: 2px solid #ffe9f1;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.9;
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #ffe3ec;
+}
+
+.detail-row:last-child { border-bottom: none; }
+
+.detail-row .detail-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.detail-pts {
+  color: var(--pink-deep);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detail-time { color: var(--ink-soft); font-size: 0.74rem; white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .head-actions { width: 100%; }
+  .head-actions .search { flex: 1 1 100%; max-width: 100%; }
+  .energy-title { margin-left: 0; }
+}
+
 /* ============ 厨师切换栏 ============ */
 .chef-bar {
   display: flex;
