@@ -78,15 +78,19 @@
     <section class="card list-card" id="mainCard">
       <div class="card-head">
         <h2>🍳 我的厨房 <span class="badge" id="countBadge">共 0 道</span></h2>
-        <div class="head-actions">
-          <div class="data-actions">
-            <button type="button" class="btn btn-soft btn-small" id="exportBtn" title="导出并复制菜谱数据">📤 导出</button>
-            <button type="button" class="btn btn-soft btn-small" id="importBtn" title="导入菜谱数据">📥 导入</button>
-            <input type="file" id="importFile" accept=".json,application/json" hidden />
-          </div>
-          <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
-        </div>
+        <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
       </div>
+
+      <!-- 数据操作：导出 / 导入（搜索下方） -->
+      <div class="data-actions-row">
+        <button type="button" class="btn btn-soft btn-small" id="exportBtn" title="导出菜谱为 Excel 表格">📤 导出 Excel</button>
+        <button type="button" class="btn btn-soft btn-small" id="importBtn" title="从 Excel / JSON 导入菜谱">📥 导入</button>
+        <input type="file" id="importFile" accept=".xlsx,.xls,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json" hidden />
+        <span class="data-hint">支持 Excel（.xlsx / .xls）与 JSON 备份</span>
+      </div>
+
+      <!-- 分类选项卡 -->
+      <div class="cat-filter" id="catFilter"></div>
 
       <!-- 添加 / 编辑菜式（可折叠表单） -->
       <div class="form-wrap" id="formWrap" hidden>
@@ -386,6 +390,7 @@
   <!-- 轻提示 -->
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js?v=10"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
