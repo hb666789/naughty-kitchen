@@ -767,19 +767,50 @@ textarea {
 }
 
 /* ============ 数据导出 / 导入 ============ */
-.head-actions {
+.data-actions-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 
-.data-actions {
-  display: flex;
-  gap: 8px;
+.data-hint {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
 }
 
 .tag.cat { background: #cfe8ff; color: #2f6ea5; }
+
+/* ============ 分类选项卡 ============ */
+.cat-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cat-chip {
+  border: 2px solid #ffe3ec;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.cat-chip:hover { border-color: var(--pink); transform: translateY(-1px); }
+
+.cat-chip.active {
+  background: linear-gradient(135deg, #a8e6cf, #57cc99);
+  border-color: var(--mint-deep);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(87, 204, 153, 0.35);
+}
 
 /* ============ 厨师称号 ============ */
 .chef-title-chip {
@@ -971,8 +1002,8 @@ textarea {
 .detail-time { color: var(--ink-soft); font-size: 0.74rem; white-space: nowrap; }
 
 @media (max-width: 560px) {
-  .head-actions { width: 100%; }
-  .head-actions .search { flex: 1 1 100%; max-width: 100%; }
+  .data-actions-row .btn { flex: 1; }
+  .data-hint { width: 100%; }
   .energy-title { margin-left: 0; }
 }
 
