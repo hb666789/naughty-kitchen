@@ -49,6 +49,7 @@
     { value: "汤品", emoji: "🍲" },
     { value: "饮品", emoji: "🥤" },
     { value: "水果", emoji: "🍎" },
+    { value: "零食", emoji: "🍿" },
     { value: "甜品", emoji: "🍰" }
   ];
 
@@ -212,6 +213,7 @@
   const importBtn  = $("importBtn");
   const importFile = $("importFile");
   const chefTitleChip = $("chefTitleChip");
+  const catFilter = $("catFilter");
 
   /* ---------- 状态 ---------- */
   let recipes = loadRecipes();
@@ -236,6 +238,7 @@
   let avatarImg = "";
   let mealSel = { 菜式: [], 甜品: [] }; // 搭配一餐的当前选择（单选的分类存 id 或 null）
   let statDetailKind = null;   // 打卡本当前展开的统计模块
+  let catFilterId = "all";     // 菜谱列表按分类筛选
 
   /* ---------- 初始化下拉框 ---------- */
   function initSelects() {
@@ -1797,99 +1800,200 @@
       : '<div class="reco-empty">🍳 还没有菜谱，先去添加几道再来推荐吧！</div>';
   }
 
-  /* ---------- 数据迁移与分享 ---------- */
+  /* ---------- 数据导出（Excel） / 导入 ---------- */
+  function buildRecipeRows() {
+    return recipes.map((r) => ({
+      "菜名": r.name,
+      "分类": r.category || "菜式",
+      "图标": r.emoji || "",
+      "烹饪时间(分钟)": r.time,
+      "烹饪方式": r.method || "",
+      "难度": r.level || 1,
+      "配料": (r.ingredients || [])
+        .map((i) => (i.quantity ? `${i.name}(${i.quantity})` : i.name))
+        .join("、"),
+      "做法": r.steps || "",
+      "所属厨师": (chefs.find((c) => c.id === r.chefId) || {}).name || ""
+    }));
+  }
+
   function exportData() {
-    const data = {
-      app: "胡闹厨房",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      recipes: recipes,
-      chefs: chefs,
-      checkins: checkins,
-      order: order
-    };
-    const json = JSON.stringify(data, null, 2);
+    const fname = `胡闹厨房菜谱-${dateKey(Date.now())}.xlsx`;
+    if (typeof XLSX !== "undefined") {
+      try {
+        const ws = XLSX.utils.json_to_sheet(buildRecipeRows());
+        ws["!cols"] = [
+          { wch: 18 }, { wch: 8 }, { wch: 6 }, { wch: 14 },
+          { wch: 10 }, { wch: 6 }, { wch: 40 }, { wch: 50 }, { wch: 12 }
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "菜谱");
+        XLSX.writeFile(wb, fname);
+        toast("📤 Excel 已导出！");
+        return;
+      } catch {
+        /* 尝试降级 */
+      }
+    }
+    // 降级：HTML 表格 .xls（Excel 也能打开）
     try {
-      // 下载 JSON 文件
-      const blob = new Blob([json], { type: "application/json" });
+      const rows = buildRecipeRows();
+      const head = Object.keys(rows[0] || { 菜名: "", 分类: "", 烹饪时间: "" });
+      const tr = (cells) => `<tr>${cells.map((c) => `<td>${escapeHtml(String(c))}</td>`).join("")}</tr>`;
+      const html =
+        `<table><tr>${head.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>` +
+        rows.map((r) => tr(head.map((h) => r[h]))).join("") +
+        "</table>";
+      const blob = new Blob(["\ufeff" + html], {
+        type: "application/vnd.ms-excel;charset=utf-8"
+      });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `胡闹厨房-数据备份-${dateKey(Date.now())}.json`;
+      a.download = fname.replace(".xlsx", ".xls");
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      toast("📤 表格已导出（Excel 兼容格式）！");
     } catch {
-      /* 下载失败不影响复制 */
+      toast("😢 导出失败，请稍后再试");
     }
-    // 复制到剪贴板（便于分享给朋友）
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(json)
-        .then(() => toast("📤 已导出！JSON 已复制到剪贴板，可直接分享～"))
-        .catch(() => toast("📤 已导出下载！"));
-    } else {
-      toast("📤 已导出下载！");
-    }
+  }
+
+  function parseIngredients(str) {
+    const list = [];
+    String(str || "")
+      .split(/[、,，;；]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((s) => {
+        const m = s.match(/^(.*?)[（(](.*?)[)）]$/);
+        list.push(m ? { name: m[1].trim(), quantity: m[2].trim() } : { name: s, quantity: "" });
+      });
+    return list;
+  }
+
+  function importRecipeRows(rows) {
+    let added = 0;
+    rows.forEach((row) => {
+      const nameV = String(row["菜名"] || "").trim();
+      if (!nameV) return;
+      const recipe = {
+        id: "imp" + Date.now() + Math.random().toString(16).slice(2, 8),
+        name: nameV,
+        category: String(row["分类"] || "菜式").trim() || "菜式",
+        emoji: String(row["图标"] || "").trim() || "🍽️",
+        time: Math.max(1, Number(row["烹饪时间(分钟)"]) || 10),
+        method: String(row["烹饪方式"] || "").trim() || "✨ 其他",
+        level: Math.min(3, Math.max(1, Number(row["难度"]) || 1)),
+        ingredients: parseIngredients(row["配料"]),
+        steps: String(row["做法"] || "").trim(),
+        image: "",
+        chefId: activeChefId,
+        createdAt: Date.now()
+      };
+      const idx = recipes.findIndex((x) => x.name === recipe.name);
+      if (idx > -1) {
+        recipes[idx] = recipe; // 同名覆盖
+      } else {
+        recipes.unshift(recipe);
+        added++;
+      }
+    });
+    return added;
   }
 
   function handleImportFile(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    const fname = (file.name || "").toLowerCase();
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(reader.result);
-        if (!data || !Array.isArray(data.recipes)) throw new Error("bad format");
-        const before = recipes.length;
         let added = 0;
-        data.recipes.forEach((r) => {
-          if (!r.id) r.id = "r" + Date.now() + Math.random().toString(16).slice(2, 6);
-          r.category = r.category || "菜式";
-          const idx = recipes.findIndex((x) => x.id === r.id);
-          if (idx > -1) {
-            recipes[idx] = r; // 覆盖同 id
-          } else {
-            recipes.unshift(r);
-            added++;
-          }
-        });
-        if (Array.isArray(data.chefs)) {
-          data.chefs.forEach((c) => {
-            if (c.id && !chefs.some((x) => x.id === c.id)) chefs.push(c);
-          });
-        }
-        if (Array.isArray(data.checkins)) {
-          data.checkins.forEach((c) => {
-            if (c.id && !checkins.some((x) => x.id === c.id)) {
-              c.chefId = c.chefId || "chef-1";
-              c.type = c.type || "dish";
-              c.points = c.points || 5;
-              checkins.push(c);
+        if (fname.endsWith(".json")) {
+          const data = JSON.parse(reader.result);
+          if (!data || !Array.isArray(data.recipes)) throw new Error("bad json");
+          data.recipes.forEach((r) => {
+            if (!r.id) r.id = "r" + Date.now() + Math.random().toString(16).slice(2, 6);
+            r.category = r.category || "菜式";
+            const idx = recipes.findIndex((x) => x.id === r.id);
+            if (idx > -1) recipes[idx] = r;
+            else {
+              recipes.unshift(r);
+              added++;
             }
           });
+          if (Array.isArray(data.chefs)) {
+            data.chefs.forEach((c) => {
+              if (c.id && !chefs.some((x) => x.id === c.id)) chefs.push(c);
+            });
+          }
+          if (Array.isArray(data.checkins)) {
+            data.checkins.forEach((c) => {
+              if (c.id && !checkins.some((x) => x.id === c.id)) {
+                c.chefId = c.chefId || "chef-1";
+                c.type = c.type || "dish";
+                c.points = c.points || 5;
+                checkins.push(c);
+              }
+            });
+          }
+          saveChefs();
+          saveCheckins();
+        } else {
+          // Excel
+          if (typeof XLSX === "undefined") {
+            toast("😢 Excel 解析库未加载，请联网后重试（或导入 JSON 备份）");
+            e.target.value = "";
+            return;
+          }
+          const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          if (!ws) throw new Error("no sheet");
+          const rows = XLSX.utils.sheet_to_json(ws);
+          added = importRecipeRows(rows);
         }
         saveRecipes();
-        saveChefs();
-        saveCheckins();
         render();
         renderChefUI();
         if (!checkinModal.hidden) renderCheckinPanel();
         toast(`📥 导入成功！新增 ${added} 道菜，共 ${recipes.length} 道`);
       } catch {
-        toast("😅 文件格式不对哦～请导入导出的 JSON 文件");
+        toast("😅 文件格式不对哦～请导入 Excel（.xlsx/.xls）或 JSON 备份");
       }
       e.target.value = "";
     };
-    reader.readAsText(file);
+    if (fname.endsWith(".json")) reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
   }
 
   /* ---------- 渲染 ---------- */
+  function renderCatFilter() {
+    const chips = [
+      `<button type="button" class="cat-chip ${catFilterId === "all" ? "active" : ""}" data-cat="all">🍽️ 全部</button>`
+    ];
+    CATEGORY_OPTIONS.forEach((c) => {
+      chips.push(
+        `<button type="button" class="cat-chip ${catFilterId === c.value ? "active" : ""}" data-cat="${c.value}">${c.emoji} ${c.value}</button>`
+      );
+    });
+    catFilter.innerHTML = chips.join("");
+  }
+
+  function setCatFilter(id) {
+    catFilterId = id;
+    renderCatFilter();
+    render();
+  }
+
   function visibleRecipes() {
     const keyword = searchInput.value.trim().toLowerCase();
     let list = recipes;
     if (filterChefId !== "all") {
       list = list.filter((r) => r.chefId === filterChefId);
+    }
+    if (catFilterId !== "all") {
+      list = list.filter((r) => (r.category || "菜式") === catFilterId);
     }
     if (keyword) {
       list = list.filter((r) => {
@@ -1993,7 +2097,7 @@
         ? "这位厨师还没有菜谱哦～<br />去添加一道属于 TA 的拿手菜吧！"
         : "还没有菜谱哦～<br />快来添加你的第一道拿手菜吧！";
     countBadge.textContent =
-      filterChefId !== "all" || keyword
+      filterChefId !== "all" || catFilterId !== "all" || keyword
         ? `显示 ${list.length} / 共 ${recipes.length} 道`
         : `共 ${recipes.length} 道`;
     if (weather) renderWeather(); // 菜谱变化后同步刷新今日推荐
@@ -2143,6 +2247,13 @@
       const chip = e.target.closest(".chef-chip");
       if (!chip || !chip.dataset.chef) return;
       setChefFilter(chip.dataset.chef);
+    });
+
+    // 分类选项卡
+    catFilter.addEventListener("click", (e) => {
+      const chip = e.target.closest(".cat-chip");
+      if (!chip || !chip.dataset.cat) return;
+      setCatFilter(chip.dataset.cat);
     });
 
     // 头像设置
@@ -2305,6 +2416,7 @@
     ensureChefs();
     migrateData();
     renderChefUI();
+    renderCatFilter();
     render();
     renderCart();
     initWeather();
