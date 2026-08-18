@@ -51,6 +51,10 @@
   const ingListEl    = $("ingredientList");
   const addIngBtn    = $("addIngredientBtn");
   const cancelEdit   = $("cancelEditBtn");
+  const toggleFormBtn = $("toggleFormBtn");
+  const formWrap      = $("formWrap");
+  const formCloseBtn  = $("formCloseBtn");
+  const formWrapTitle = $("formWrapTitle");
   const recipeGrid   = $("recipeGrid");
   const emptyState   = $("emptyState");
   const searchInput  = $("searchInput");
@@ -511,6 +515,22 @@
     methodSelect.value = METHOD_OPTIONS[0];
     renderIngredientRows();
     resetImageUI();
+    setFormOpen(false); // 保存/取消后收起表单
+  }
+
+  /* 展开 / 收起添加菜式表单 */
+  function setFormOpen(open) {
+    formWrap.hidden = !open;
+    toggleFormBtn.textContent = open ? "▾ 收起表单" : "➕ 添加新菜式";
+  }
+
+  function openAddForm() {
+    exitEditMode();
+    resetFormAfterSave();       // 重置表单（内部会收起，随后再展开）
+    formWrapTitle.textContent = "➕ 添加新菜式";
+    setFormOpen(true);
+    dishForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    nameInput.focus();
   }
 
   function startEdit(id) {
@@ -532,6 +552,8 @@
     else resetImageUI();
 
     cancelEdit.hidden = false;
+    formWrapTitle.textContent = "✏️ 编辑菜式";
+    setFormOpen(true);
     dishForm.scrollIntoView({ behavior: "smooth", block: "start" });
     document
       .querySelectorAll(".recipe-card")
@@ -1471,6 +1493,17 @@
   function bindEvents() {
     dishForm.addEventListener("submit", handleSubmit);
     addIngBtn.addEventListener("click", () => addIngredientRow());
+    toggleFormBtn.addEventListener("click", () => {
+      if (!formWrap.hidden) {
+        setFormOpen(false);
+        return;
+      }
+      openAddForm();
+    });
+    formCloseBtn.addEventListener("click", () => {
+      exitEditMode();
+      resetFormAfterSave();
+    });
     cancelEdit.addEventListener("click", () => {
       exitEditMode();
       resetFormAfterSave();
