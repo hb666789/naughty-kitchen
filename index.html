@@ -68,10 +68,7 @@
     <section class="card list-card" id="mainCard">
       <div class="card-head">
         <h2>🍳 我的厨房 <span class="badge" id="countBadge">共 0 道</span></h2>
-        <div class="head-actions">
-          <button type="button" class="btn btn-primary btn-small" id="toggleFormBtn">➕ 添加新菜式</button>
-          <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
-        </div>
+        <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
       </div>
 
       <!-- 添加 / 编辑菜式（可折叠表单） -->
@@ -151,8 +148,11 @@
       <div id="recipeGrid" class="recipe-grid"></div>
       <div id="emptyState" class="empty-state" hidden>
         <div class="empty-emoji">🍳</div>
-        <p>还没有菜谱哦～<br />点「➕ 添加新菜式」开始吧！</p>
+        <p>还没有菜谱哦～<br />点右下角的「➕」开始吧！</p>
       </div>
+
+      <!-- 右下角悬浮：添加新菜式 -->
+      <button type="button" class="fab-add" id="toggleFormBtn" title="添加新菜式">➕</button>
     </section>
 
     <footer class="footer">💕 用心做菜，好好吃饭 · 数据保存在你的浏览器里</footer>
