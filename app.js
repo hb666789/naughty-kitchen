@@ -34,7 +34,13 @@
 
   const CHEF_EMOJIS = [
     "👨‍🍳", "👩‍🍳", "🧑‍🍳", "🐻", "🐱", "🐶", "🦊", "🐼",
-    "🐰", "🐨", "🦁", "🐯", "🐸", "🐷", "🐮", "🐔"
+    "🐰", "🐨", "🦁", "🐯", "🐸", "🐷", "🐮", "🐔",
+    "🐹", "🐭", "🦄", "🐙", "🐢", "🐳", "🦉", "🐝"
+  ];
+
+  const AVATAR_COLORS = [
+    "#ffd6e4", "#ffe9c9", "#d8f3dc", "#cfe8ff",
+    "#e6d5f5", "#fff3b0", "#ffd8d8", "#d9f0e8"
   ];
 
   /* ---------- DOM ---------- */
@@ -124,6 +130,7 @@
   // 厨师档案
   const chefSwitcher   = $("chefSwitcher");
   const chefAvatar     = $("chefAvatar");
+  const chefAvatarBtn  = $("chefAvatarBtn");
   const chefName       = $("chefName");
   const chefManageBtn  = $("chefManageBtn");
   const chefModal      = $("chefModal");
@@ -151,6 +158,19 @@
   const cityInput       = $("cityInput");
   const cityGo          = $("cityGo");
 
+  // 头像设置
+  const avatarModal     = $("avatarModal");
+  const avatarChefName  = $("avatarChefName");
+  const avatarClose     = $("avatarClose");
+  const avatarPreview   = $("avatarPreview");
+  const avatarUploadBtn = $("avatarUploadBtn");
+  const avatarFile      = $("avatarFile");
+  const avatarClearImg  = $("avatarClearImg");
+  const avatarGrid      = $("avatarGrid");
+  const avatarColors    = $("avatarColors");
+  const avatarCancel    = $("avatarCancel");
+  const avatarSave      = $("avatarSave");
+
   /* ---------- 状态 ---------- */
   let recipes = loadRecipes();
   let order = loadOrder();
@@ -168,6 +188,10 @@
   let cookTotal = 0;           // 总秒数
   let cookLeft = 0;            // 剩余秒数
   let weather = null;          // { city, temp, code, desc, emoji, ts }
+  let avatarChefId = null;     // 正在设置头像的厨师
+  let avatarEmoji = "👨‍🍳";
+  let avatarColor = "";
+  let avatarImg = "";
 
   /* ---------- 初始化下拉框 ---------- */
   function initSelects() {
@@ -754,9 +778,24 @@
   }
 
   /* ---------- 厨师档案 ---------- */
+  /* 把厨师头像渲染到圆形元素上（emoji 或自定义图片） */
+  function applyAvatar(el, chef) {
+    if (!el) return;
+    el.style.background = chef.avatarColor || "";
+    el.style.backgroundImage = "";
+    if (chef.avatarImg) {
+      el.textContent = "";
+      el.style.backgroundImage = `url(${chef.avatarImg})`;
+      el.style.backgroundSize = "cover";
+      el.style.backgroundPosition = "center";
+    } else {
+      el.textContent = chef.emoji || "👨‍🍳";
+    }
+  }
+
   function renderChefUI() {
     const a = activeChef();
-    chefAvatar.textContent = a.emoji;
+    applyAvatar(chefAvatar, a);
     chefName.textContent = a.name;
     formChefNote.textContent = `👨‍🍳 新菜式将收录到「${a.name}」的档案`;
     renderChefFilter();
@@ -782,7 +821,7 @@
         const active = c.id === activeChefId;
         return `
       <div class="chef-item ${active ? "active" : ""}" data-id="${c.id}">
-        <span class="chef-avatar">${c.emoji}</span>
+        <span class="chef-avatar">${c.emoji || "👨‍🍳"}</span>
         <div class="chef-item-info">
           <div class="chef-item-name">${escapeHtml(c.name)}${active ? '<span class="chef-current">当前</span>' : ""}</div>
           <div class="chef-item-slogan">${escapeHtml(c.slogan || "还没有口号～")}</div>
@@ -795,6 +834,12 @@
       </div>`;
       })
       .join("");
+    // 头像统一渲染（emoji 或自定义图片）
+    chefList.querySelectorAll(".chef-item").forEach((item) => {
+      const chef = chefs.find((c) => c.id === item.dataset.id);
+      const avatarEl = item.querySelector(".chef-avatar");
+      if (chef && avatarEl) applyAvatar(avatarEl, chef);
+    });
   }
 
   function openChefModal() {
@@ -876,6 +921,113 @@
     filterChefId = id;
     renderChefFilter();
     render();
+  }
+
+  /* ---------- 头像设置 ---------- */
+  function openAvatarPicker() {
+    const c = activeChef();
+    if (!c) return;
+    avatarChefId = c.id;
+    avatarEmoji = c.emoji || CHEF_EMOJIS[0];
+    avatarColor = c.avatarColor || "";
+    avatarImg = c.avatarImg || "";
+    avatarChefName.textContent = c.name;
+    renderAvatarPicker();
+    avatarModal.hidden = false;
+  }
+
+  function closeAvatarModal() {
+    avatarModal.hidden = true;
+  }
+
+  function renderAvatarPicker() {
+    // 预览
+    avatarPreview.style.background = avatarColor || "";
+    avatarPreview.style.backgroundImage = "";
+    if (avatarImg) {
+      avatarPreview.textContent = "";
+      avatarPreview.style.backgroundImage = `url(${avatarImg})`;
+      avatarPreview.style.backgroundSize = "cover";
+      avatarPreview.style.backgroundPosition = "center";
+    } else {
+      avatarPreview.textContent = avatarEmoji;
+    }
+    avatarClearImg.hidden = !avatarImg;
+
+    // 头像图库
+    avatarGrid.innerHTML = CHEF_EMOJIS.map(
+      (e) =>
+        `<button type="button" class="avatar-opt ${e === avatarEmoji && !avatarImg ? "active" : ""}" data-emoji="${e}">${e}</button>`
+    ).join("");
+
+    // 背景色
+    const colors = [
+      `<button type="button" class="color-opt ${avatarColor === "" ? "active" : ""}" data-color="">🌈 渐变</button>`
+    ];
+    AVATAR_COLORS.forEach((c) => {
+      colors.push(
+        `<button type="button" class="color-opt ${avatarColor === c ? "active" : ""}" data-color="${c}" style="background:${c}"></button>`
+      );
+    });
+    avatarColors.innerHTML = colors.join("");
+  }
+
+  function saveAvatar() {
+    const c = chefs.find((x) => x.id === avatarChefId);
+    if (!c) return;
+    c.emoji = avatarEmoji;
+    c.avatarColor = avatarColor;
+    c.avatarImg = avatarImg;
+    saveChefs();
+    renderChefUI();
+    render();
+    avatarModal.hidden = true;
+    toast("🎨 头像已更新！");
+  }
+
+  function handleAvatarFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("image/")) {
+      toast("😅 请选择图片文件哦");
+      avatarFile.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        avatarImg = compressAvatarImage(img, reader.result);
+        avatarFile.value = "";
+        renderAvatarPicker();
+        toast("🖼️ 图片已就位，点保存生效～");
+      };
+      img.onerror = () => {
+        toast("😢 图片读取失败，换一张试试");
+        avatarFile.value = "";
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function compressAvatarImage(img, fallback) {
+    const MAX = 160;
+    let w = img.width || 160;
+    let h = img.height || 160;
+    const ratio = Math.min(1, MAX / Math.max(w, h));
+    w = Math.max(1, Math.round(w * ratio));
+    h = Math.max(1, Math.round(h * ratio));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+    try {
+      return canvas.toDataURL("image/jpeg", 0.85);
+    } catch {
+      return fallback;
+    }
   }
 
   /* ---------- 做菜打卡 ---------- */
@@ -1542,6 +1694,7 @@
     // 厨师档案
     chefSwitcher.addEventListener("click", openChefModal);
     chefManageBtn.addEventListener("click", openChefModal);
+    chefAvatarBtn.addEventListener("click", openAvatarPicker);
     chefClose.addEventListener("click", closeChefModal);
     chefModal.addEventListener("click", (e) => {
       if (e.target === chefModal) closeChefModal();
@@ -1569,6 +1722,34 @@
       const chip = e.target.closest(".chef-chip");
       if (!chip || !chip.dataset.chef) return;
       setChefFilter(chip.dataset.chef);
+    });
+
+    // 头像设置
+    avatarClose.addEventListener("click", closeAvatarModal);
+    avatarCancel.addEventListener("click", closeAvatarModal);
+    avatarModal.addEventListener("click", (e) => {
+      if (e.target === avatarModal) closeAvatarModal();
+    });
+    avatarSave.addEventListener("click", saveAvatar);
+    avatarUploadBtn.addEventListener("click", () => avatarFile.click());
+    avatarFile.addEventListener("change", handleAvatarFile);
+    avatarClearImg.addEventListener("click", () => {
+      avatarImg = "";
+      avatarFile.value = "";
+      renderAvatarPicker();
+    });
+    avatarGrid.addEventListener("click", (e) => {
+      const opt = e.target.closest(".avatar-opt");
+      if (!opt) return;
+      avatarEmoji = opt.dataset.emoji;
+      avatarImg = ""; // 选了 emoji 就换回 emoji 头像
+      renderAvatarPicker();
+    });
+    avatarColors.addEventListener("click", (e) => {
+      const opt = e.target.closest(".color-opt");
+      if (!opt) return;
+      avatarColor = opt.dataset.color || "";
+      renderAvatarPicker();
     });
 
     // 天气与推荐
@@ -1660,6 +1841,7 @@
       if (!cookModal.hidden) closeCooking();
       if (!checkinModal.hidden) closeCheckinPanel();
       if (!chefModal.hidden) closeChefModal();
+      if (!avatarModal.hidden) closeAvatarModal();
       if (!cartDrawer.hidden) cartDrawer.hidden = true;
     });
   }
