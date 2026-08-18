@@ -64,83 +64,86 @@
       </div>
     </section>
 
-    <!-- 添加菜式卡片 -->
-    <section class="card form-card" id="formCard">
+    <!-- 🍳 我的厨房：添加菜式 + 菜谱列表（合并） -->
+    <section class="card list-card" id="mainCard">
       <div class="card-head">
-        <h2>➕ 添加新菜式</h2>
-        <span class="badge" id="countBadge">共 0 道</span>
-      </div>
-      <p class="form-chef-note" id="formChefNote">👨‍🍳 新菜式将收录到「胡闹主厨」的档案</p>
-
-      <form id="dishForm" autocomplete="off">
-        <input type="hidden" id="editId" />
-
-        <div class="form-row">
-          <div class="field grow">
-            <label for="dishName">🍽️ 菜名 <em>*</em></label>
-            <input type="text" id="dishName" placeholder="比如：番茄炒蛋" maxlength="30" required />
-          </div>
-          <div class="field">
-            <label for="dishEmoji">😋 小图标</label>
-            <select id="dishEmoji"></select>
-          </div>
+        <h2>🍳 我的厨房 <span class="badge" id="countBadge">共 0 道</span></h2>
+        <div class="head-actions">
+          <button type="button" class="btn btn-primary btn-small" id="toggleFormBtn">➕ 添加新菜式</button>
+          <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
         </div>
+      </div>
 
-        <div class="form-row">
-          <div class="field">
-            <label for="dishTime">⏰ 烹饪时间</label>
-            <div class="time-input">
-              <input type="number" id="dishTime" min="1" max="999" placeholder="15" />
-              <span class="unit">分钟</span>
+      <!-- 添加 / 编辑菜式（可折叠表单） -->
+      <div class="form-wrap" id="formWrap" hidden>
+        <div class="form-wrap-head">
+          <span class="form-wrap-title" id="formWrapTitle">➕ 添加新菜式</span>
+          <button type="button" class="icon-btn" id="formCloseBtn" title="收起表单">✕</button>
+        </div>
+        <p class="form-chef-note" id="formChefNote">👨‍🍳 新菜式将收录到「胡闹主厨」的档案</p>
+
+        <form id="dishForm" autocomplete="off">
+          <input type="hidden" id="editId" />
+
+          <div class="form-row">
+            <div class="field grow">
+              <label for="dishName">🍽️ 菜名 <em>*</em></label>
+              <input type="text" id="dishName" placeholder="比如：番茄炒蛋" maxlength="30" required />
+            </div>
+            <div class="field">
+              <label for="dishEmoji">😋 小图标</label>
+              <select id="dishEmoji"></select>
             </div>
           </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="dishTime">⏰ 烹饪时间</label>
+              <div class="time-input">
+                <input type="number" id="dishTime" min="1" max="999" placeholder="15" />
+                <span class="unit">分钟</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="dishMethod">🍳 烹饪方式</label>
+              <select id="dishMethod"></select>
+            </div>
+            <div class="field">
+              <label for="dishLevel">💪 难度</label>
+              <select id="dishLevel">
+                <option value="1">⭐ 超简单</option>
+                <option value="2">⭐⭐ 有点难</option>
+                <option value="3">⭐⭐⭐ 大挑战</option>
+              </select>
+            </div>
+          </div>
+
           <div class="field">
-            <label for="dishMethod">🍳 烹饪方式</label>
-            <select id="dishMethod"></select>
+            <label>🖼️ 菜菜配图 <span class="hint">（可选，点一下上传，自动压缩）</span></label>
+            <input type="file" id="imageInput" accept="image/*" hidden />
+            <div class="img-upload" id="imgUpload" title="点击上传图片">
+              <img id="imagePreview" class="img-preview" alt="配图预览" hidden />
+              <div class="img-placeholder" id="imgPlaceholder">📷<br /><span>点击上传图片</span></div>
+            </div>
+            <button type="button" class="btn btn-soft btn-small" id="removeImageBtn" hidden>🗑️ 移除图片</button>
           </div>
+
           <div class="field">
-            <label for="dishLevel">💪 难度</label>
-            <select id="dishLevel">
-              <option value="1">⭐ 超简单</option>
-              <option value="2">⭐⭐ 有点难</option>
-              <option value="3">⭐⭐⭐ 大挑战</option>
-            </select>
+            <label>🥕 配料清单 <span class="hint">（可以随时添加／删除）</span></label>
+            <div id="ingredientList"></div>
+            <button type="button" class="btn btn-soft" id="addIngredientBtn">＋ 添加配料</button>
           </div>
-        </div>
 
-        <div class="field">
-          <label>🖼️ 菜菜配图 <span class="hint">（可选，点一下上传，自动压缩）</span></label>
-          <input type="file" id="imageInput" accept="image/*" hidden />
-          <div class="img-upload" id="imgUpload" title="点击上传图片">
-            <img id="imagePreview" class="img-preview" alt="配图预览" hidden />
-            <div class="img-placeholder" id="imgPlaceholder">📷<br /><span>点击上传图片</span></div>
+          <div class="field">
+            <label for="dishSteps">📝 做法小抄</label>
+            <textarea id="dishSteps" rows="3" placeholder="把步骤悄悄写在这里吧～"></textarea>
           </div>
-          <button type="button" class="btn btn-soft btn-small" id="removeImageBtn" hidden>🗑️ 移除图片</button>
-        </div>
 
-        <div class="field">
-          <label>🥕 配料清单 <span class="hint">（可以随时添加／删除）</span></label>
-          <div id="ingredientList"></div>
-          <button type="button" class="btn btn-soft" id="addIngredientBtn">＋ 添加配料</button>
-        </div>
-
-        <div class="field">
-          <label for="dishSteps">📝 做法小抄</label>
-          <textarea id="dishSteps" rows="3" placeholder="把步骤悄悄写在这里吧～"></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-ghost" id="cancelEditBtn" hidden>取消编辑</button>
-          <button type="submit" class="btn btn-primary">✨ 保存这道菜</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- 菜谱列表 -->
-    <section class="card list-card">
-      <div class="card-head">
-        <h2>📖 我的菜谱</h2>
-        <input type="search" id="searchInput" class="search" placeholder="🔍 搜菜名／配料…" />
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="cancelEditBtn" hidden>取消编辑</button>
+            <button type="submit" class="btn btn-primary">✨ 保存这道菜</button>
+          </div>
+        </form>
       </div>
 
       <div class="chef-filter" id="chefFilter"></div>
@@ -148,7 +151,7 @@
       <div id="recipeGrid" class="recipe-grid"></div>
       <div id="emptyState" class="empty-state" hidden>
         <div class="empty-emoji">🍳</div>
-        <p>还没有菜谱哦～<br />快来添加你的第一道拿手菜吧！</p>
+        <p>还没有菜谱哦～<br />点「➕ 添加新菜式」开始吧！</p>
       </div>
     </section>
 
